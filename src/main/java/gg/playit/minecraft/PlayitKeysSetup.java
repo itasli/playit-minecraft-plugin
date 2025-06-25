@@ -117,16 +117,23 @@ public class PlayitKeysSetup {
                 var tunnels = api.listTunnels();
                 keys.tunnelAddress = null;
 
+                boolean haveJava = false;
+                boolean haveBedrock = !isGeyserPresent;
+
                 for (AccountTunnel tunnel : tunnels.tunnels) {
                     if (tunnel.tunnelType == TunnelType.MinecraftJava) {
                         keys.tunnelAddress = tunnel.displayAddress;
+                        haveJava = true;
                         log.info("found minecraft java tunnel: " + keys.tunnelAddress);
-                        // Don't return yet, check for Bedrock tunnel if Geyser is present
+                    }
+                    if (isGeyserPresent && tunnel.tunnelType == TunnelType.MinecraftBedrock) {
+                        haveBedrock = true;
+                        log.info("found minecraft bedrock tunnel: " + tunnel.displayAddress);
                     }
                 }
 
                 // Always create Java tunnel if not found
-                if (keys.tunnelAddress == null) {
+                if (!haveJava) {
                     log.info("create new minecraft java tunnel");
 
                     var create = new CreateTunnel();
@@ -137,29 +144,26 @@ public class PlayitKeysSetup {
                     create.agentId = keys.agentId;
 
                     api.createTunnel(create);
+                    return null; // Wait for tunnel to appear
                 }
 
                 // If Geyser is present, ensure a Bedrock UDP tunnel exists
-                if (isGeyserPresent) {
-                    boolean foundBedrock = false;
-                    for (AccountTunnel tunnel : tunnels.tunnels) {
-                        if (tunnel.tunnelType == TunnelType.MinecraftBedrock) {
-                            foundBedrock = true;
-                            log.info("found minecraft bedrock tunnel: " + tunnel.displayAddress);
-                            break;
-                        }
-                    }
-                    if (!foundBedrock) {
-                        log.info("create new minecraft bedrock UDP tunnel on port " + geyserPort);
-                        var create = new CreateTunnel();
-                        create.localIp = "127.0.0.1";
-                        create.localPort = geyserPort;
-                        create.portCount = 1;
-                        create.portType = PortType.UDP;
-                        create.tunnelType = TunnelType.MinecraftBedrock;
-                        create.agentId = keys.agentId;
-                        api.createTunnel(create);
-                    }
+                if (isGeyserPresent && !haveBedrock) {
+                    log.info("create new minecraft bedrock UDP tunnel on port " + geyserPort);
+                    var create = new CreateTunnel();
+                    create.localIp = "127.0.0.1";
+                    create.localPort = geyserPort;
+                    create.portCount = 1;
+                    create.portType = PortType.UDP;
+                    create.tunnelType = TunnelType.MinecraftBedrock;
+                    create.agentId = keys.agentId;
+                    api.createTunnel(create);
+                    return null; // Wait for tunnel to appear
+                }
+
+                // If we have both required tunnels, setup is done
+                if (haveJava && haveBedrock) {
+                    return keys;
                 }
 
                 return null;
