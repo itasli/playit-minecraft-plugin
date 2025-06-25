@@ -149,7 +149,7 @@ public class PlayitKeysSetup {
 
                 // If Geyser is present, ensure a Bedrock UDP tunnel exists
                 if (isGeyserPresent && !haveBedrock) {
-                    log.info("create new minecraft bedrock UDP tunnel on port " + geyserPort);
+                    log.info("Preparing to create new minecraft bedrock UDP tunnel:");
                     var create = new CreateTunnel();
                     create.localIp = "127.0.0.1";
                     create.localPort = geyserPort;
@@ -157,7 +157,19 @@ public class PlayitKeysSetup {
                     create.portType = PortType.UDP;
                     create.tunnelType = TunnelType.MinecraftBedrock;
                     create.agentId = keys.agentId;
-                    api.createTunnel(create);
+                    log.info("  localIp: " + create.localIp);
+                    log.info("  localPort: " + create.localPort);
+                    log.info("  portCount: " + create.portCount);
+                    log.info("  portType: " + create.portType);
+                    log.info("  tunnelType: " + create.tunnelType);
+                    log.info("  agentId: " + create.agentId);
+                    try {
+                        api.createTunnel(create);
+                        log.info("Successfully requested Bedrock tunnel creation");
+                    } catch (Exception e) {
+                        log.severe("Failed to create Bedrock tunnel: " + e.getMessage());
+                        e.printStackTrace();
+                    }
                     return null; // Wait for tunnel to appear
                 }
 
